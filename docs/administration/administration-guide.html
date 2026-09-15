@@ -696,6 +696,11 @@ pre.rouge {
 <li><a href="#_troubleshooting_faq">Troubleshooting FAQ</a></li>
 </ul>
 </li>
+<li><a href="#_migration">Migration Guide</a>
+<ul class="sectlevel2">
+<li><a href="#_7_0_x_to_7_1_x">7.0.x to 7.1.x</a></li>
+</ul>
+</li>
 <li><a href="#_notice">NOTICE</a></li>
 </ul>
 </div>
@@ -1957,7 +1962,7 @@ Keep the values for these settings safe and do not publish them!
 <p>Create a contract definition that links the notification asset to those policies so partner IRS instances can discover and negotiate the offer.</p>
 </li>
 <li>
-<p>Register the DTR, PURIS and Industry Core accepted policies described below in the IRS Policy Store through <code>POST /irs/policies</code>. The offered contract policy must satisfy an active accepted policy; otherwise the recursive sender rejects the catalog offer.</p>
+<p>Register the DTR, PURIS and Industry Core accepted policies described below in the IRS Policy Store through <code>POST /irs/policies</code>. A consumed contract offer must satisfy an active accepted policy.</p>
 </li>
 <li>
 <p>Store the local chain opening grant for every asset that the participant may process under the opening. Leaf participants use an empty <code>allowedBpnlSet</code>.</p>
@@ -1972,6 +1977,9 @@ Keep the values for these settings safe and do not publish them!
 </div>
 <div class="paragraph">
 <p>The provider offer and the consumer&#8217;s accepted policy configuration must use compatible constraints. The current IRS policy matcher uses the <code><a href="https://w3id.org/catenax/policy/" class="bare">https://w3id.org/catenax/policy/</a></code> namespace and represents each <code>rightOperand</code> as a single string.</p>
+</div>
+<div class="paragraph">
+<p>If the notification catalog query returns multiple assets or multiple contract offers for one asset, the recursive sender evaluates all complete offers. It selects one accepted, non-expired offer deterministically by asset ID and offer ID. Rejected or expired offers are never negotiated. If offers are returned but none contains all required catalog fields, the sender reports <code>CATALOG_REQUEST_FAILED</code>. If complete offers exist but none is accepted and non-expired, it reports <code>NOTIFICATION_POLICY_REJECTED</code>.</p>
 </div>
 <div class="sect3">
 <h4 id="_provider_edc_policy_and_contract_definition">Provider EDC policy and contract definition</h4>
@@ -2572,6 +2580,20 @@ It can also happen if the persistent volume claim is deleted / recreated.</p>
 </div>
 </div>
 <div class="sect1">
+<h2 id="_migration">Migration Guide</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This guide has been introduced in 26.09 to cover migration needs based on <strong>chart versions</strong> for the irs. Only the delta is between versions is mentioned.</p>
+</div>
+<div class="sect2">
+<h3 id="_7_0_x_to_7_1_x">7.0.x to 7.1.x</h3>
+<div class="paragraph">
+<p>No Migration is needed. Only an experimental feature for PURIS has been added introducing a new IRS recursive. The changes are minor and don&#8217;t affect existing functionality. Please refer to the <a href="../arc42/index.adoc">arc42</a> and <a href="recursive-irs.adoc">admin guide section</a> for further details.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
 <h2 id="_notice">NOTICE</h2>
 <div class="sectionbody">
 <div class="paragraph">
@@ -2601,6 +2623,9 @@ It can also happen if the persistent volume claim is deleted / recreated.</p>
 <p>SPDX-FileCopyrightText: 2026 Volkswagen AG</p>
 </li>
 <li>
+<p>SPDX-FileCopyrightText: Fraunhofer-Gesellschaft zur Foerderung der angewandten Forschung e.V. (represented by Fraunhofer ISST)</p>
+</li>
+<li>
 <p>Source URL: <a href="https://github.com/eclipse-tractusx/item-relationship-service" class="bare">https://github.com/eclipse-tractusx/item-relationship-service</a></p>
 </li>
 </ul>
@@ -2610,7 +2635,7 @@ It can also happen if the persistent volume claim is deleted / recreated.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-09-03 13:56:33 UTC
+Last updated 2026-09-15 12:55:36 UTC
 </div>
 </div>
 </body>

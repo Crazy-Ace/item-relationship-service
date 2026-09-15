@@ -944,12 +944,14 @@ Each participant acts as an EDC provider for incoming recursive notifications an
 2. Publish the recursive notification asset in the participant’s provider EDC with `dct:type`, `cx-common:version`, the IRS notification endpoint and the regular IRS API key shown above.
 3. Create an access policy and contract policy for the notification asset that are compatible with the current IRS policy matcher. The access policy controls catalog visibility; the contract policy defines the permitted use of the endpoint.
 4. Create a contract definition that links the notification asset to those policies so partner IRS instances can discover and negotiate the offer.
-5. Register the DTR, PURIS and Industry Core accepted policies described below in the IRS Policy Store through `POST /irs/policies`. The offered contract policy must satisfy an active accepted policy; otherwise the recursive sender rejects the catalog offer.
+5. Register the DTR, PURIS and Industry Core accepted policies described below in the IRS Policy Store through `POST /irs/policies`. A consumed contract offer must satisfy an active accepted policy.
 6. Store the local chain opening grant for every asset that the participant may process under the opening. Leaf participants use an empty `allowedBpnlSet`.
 7. Verify that each direct partner can discover an offer with `dct:type=https://w3id.org/catenax/taxonomy#RecursiveIrsNotificationApi` and `cx-common:version=1.0` and that its policy is accepted.
 8. Start the root job only after the notification routes, policies, contract definitions and local grants are available on all participating tiers.
 
 The provider offer and the consumer’s accepted policy configuration must use compatible constraints. The current IRS policy matcher uses the `https://w3id.org/catenax/policy/` namespace and represents each `rightOperand` as a single string.
+
+If the notification catalog query returns multiple assets or multiple contract offers for one asset, the recursive sender evaluates all complete offers. It selects one accepted, non-expired offer deterministically by asset ID and offer ID. Rejected or expired offers are never negotiated. If offers are returned but none contains all required catalog fields, the sender reports `CATALOG_REQUEST_FAILED`. If complete offers exist but none is accepted and non-expired, it reports `NOTIFICATION_POLICY_REJECTED`.
 
 #### Provider EDC policy and contract definition
 
@@ -1309,6 +1311,14 @@ It can also happen if the persistent volume claim is deleted / recreated.
 
 Currently, the IRS only supports one version of the Job model at a time. This means that if the Job model is changed in a newer IRS version, old models stored in minio will no longer be supported and returned from IRS endpoints. The IRS application will work as usual, old versions of Job can stay in Minio and don’t need to be removed - the IRS will simply ignore them. If you want to clear the minio from old models, the only way to achieve that is to delete them all and register new Jobs.
 
+## Migration Guide
+
+This guide has been introduced in 26.09 to cover migration needs based on **chart versions** for the irs. Only the delta is between versions is mentioned.
+
+### 7.0.x to 7.1.x
+
+No Migration is needed. Only an experimental feature for PURIS has been added introducing a new IRS recursive. The changes are minor and don’t affect existing functionality. Please refer to the [arc42](../arc42/index.adoc) and [admin guide section](recursive-irs.adoc) for further details.
+
 ### NOTICE
 
 This work is licensed under the [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0).
@@ -1320,4 +1330,5 @@ This work is licensed under the [Apache-2.0](https://www.apache.org/licenses/LIC
 * SPDX-FileCopyrightText: 2022 ISTOS GmbH
 * SPDX-FileCopyrightText: 2021 Contributors to the Eclipse Foundation
 * SPDX-FileCopyrightText: 2026 Volkswagen AG
+* SPDX-FileCopyrightText: Fraunhofer-Gesellschaft zur Foerderung der angewandten Forschung e.V. (represented by Fraunhofer ISST)
 * Source URL: <https://github.com/eclipse-tractusx/item-relationship-service>
