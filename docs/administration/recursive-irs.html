@@ -1027,12 +1027,31 @@ pre.rouge {
 <h2 id="_required_configuration">Required configuration</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Each IRS instance must have a local BPNL for the recursive path. The Helm chart uses the existing <code>bpn</code> value by default and supports <code>recursive.localBpnl</code> as an explicit override:</p>
+<p><code>irs.recursive.enabled</code> defaults to <code>false</code>. Outside Helm, set <code>IRS_RECURSIVE_ENABLED=true</code> to enable the recursive path. In Helm, set <code>recursive.enabled: true</code>; omitting the value keeps it disabled. This switch is evaluated at startup and requires an application restart.</p>
+</div>
+<div class="paragraph">
+<p>Deployments using recursive IRS must explicitly enable it when upgrading.</p>
+</div>
+<div class="paragraph">
+<p>The deployed IRS image must support <code>irs.recursive.enabled</code>.</p>
+</div>
+<div class="paragraph">
+<p>With Helm <code>config.override: true</code>, set <code>irs.recursive.enabled</code> in <code>config.content</code> because the generated application configuration is not used.</p>
+</div>
+<div class="paragraph">
+<p>When disabled, recursive job, chain opening grant and notification endpoints are not available, and recursive background processing does not run. Recursive-only BPNL, timeout and persistence configuration is not required. Shared iterative IRS and ESS configuration and behavior remain unchanged.</p>
+</div>
+<div class="paragraph">
+<p>Disabling does not delete stored recursive jobs or chain opening grants. When enabled again, IRS processes stored jobs according to its startup recovery rules. Job deadlines continue to apply while the recursive path is disabled. Blob-store retention remains in effect.</p>
+</div>
+<div class="paragraph">
+<p>When enabled, each IRS instance must have a local BPNL for the recursive path. The Helm chart uses the existing <code>bpn</code> value by default and supports <code>recursive.localBpnl</code> as an explicit override:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="rouge highlight"><code data-lang="yaml"><span class="na">bpn</span><span class="pi">:</span> <span class="s">&lt;LOCAL_BPNL&gt;</span>
 <span class="na">recursive</span><span class="pi">:</span>
+  <span class="na">enabled</span><span class="pi">:</span> <span class="no">true</span>
   <span class="c1"># Optional. Omit this value to reuse bpn.</span>
   <span class="na">localBpnl</span><span class="pi">:</span>
   <span class="na">timeout</span><span class="pi">:</span>
@@ -1043,7 +1062,7 @@ pre.rouge {
 </div>
 </div>
 <div class="paragraph">
-<p>Set <code>recursive.localBpnl</code> only if the recursive path must use a different BPNL than the general IRS instance value. Outside the Helm chart, the corresponding Spring property <code>irs.recursive.localBpnl</code>, or the environment variable <code>IRS_RECURSIVE_LOCAL_BPNL</code>, remains required. The value identifies the local IRS instance when it sends recursive partner notifications.</p>
+<p>Set <code>recursive.localBpnl</code> only if the recursive path must use a different BPNL than the general IRS instance value. Outside the Helm chart, the corresponding Spring property <code>irs.recursive.localBpnl</code>, or the environment variable <code>IRS_RECURSIVE_LOCAL_BPNL</code>, is required when recursive IRS is enabled. The value identifies the local IRS instance when it sends recursive partner notifications.</p>
 </div>
 <div class="paragraph">
 <p>For a root job, omitted or null <code>ttl</code> uses <code>recursive.timeout.defaultJobTtl</code> (<code>PT30M</code>). An explicit <code>ttl</code> must be a positive ISO-8601 duration; empty, malformed, zero and negative values return HTTP 400. A positive TTL can be shorter than the safety buffer. <code>recursive.timeout.maxJobTtl</code> (<code>PT2H</code>) caps requested root TTLs, and the effective TTL is added to the job creation time.</p>
@@ -1801,7 +1820,7 @@ AUDIT 2026-10-29T10:56:03,631 action=START_JOB jobId=014bc06a-4fd6-4cb9-9671-fdc
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-11-12 07:15:51 UTC
+Last updated 2026-11-16 07:47:11 UTC
 </div>
 </div>
 </body>

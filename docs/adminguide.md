@@ -64,6 +64,25 @@ The OAuth2, MIW and Vault configuration / secrets depend on your setup and might
 The IRS application is configured using the Spring configuration mechanism. The main configuration file is the ``application.yaml``.
 
 ```yaml
+#
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+# Copyright (c) 2026 Volkswagen AG
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0.
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 server:
   port: 8080 # The port the main application API listens on
   trustedPort: ${SERVER_TRUSTED_PORT:} # The port used for the unsecured, internal API - if empty, the main port is used
@@ -137,7 +156,8 @@ springdoc: # API docs configuration
 irs: # Application config
   apiUrl: "${IRS_API_URL:http://localhost:8080}" # Public URL of the application, used in Swagger UI
   recursive:
-    localBpnl: ${IRS_RECURSIVE_LOCAL_BPNL:} # Mandatory BPNL of this IRS instance; startup fails when blank or not a BPNL.
+    enabled: ${IRS_RECURSIVE_ENABLED:false}
+    localBpnl: ${IRS_RECURSIVE_LOCAL_BPNL:} # Required when recursive IRS is enabled; must be a valid BPNL.
     timeout:
       defaultJobTtl: ${IRS_RECURSIVE_TIMEOUT_DEFAULT_JOB_TTL:PT30M}
       maxJobTtl: ${IRS_RECURSIVE_TIMEOUT_MAX_JOB_TTL:PT2H}
@@ -340,6 +360,8 @@ job:
     completed: "PT24H"
 bpn:  # BPN for this IRS instance; only users with this BPN are allowed to access the API
 recursive:
+  # -- Enable recursive IRS endpoints and workers at startup. Requires a restart to change.
+  enabled: false
   # -- Optional BPNL override for recursive requests and responses. Defaults to the IRS instance value from `bpn`.
   localBpnl:
   timeout:
@@ -563,8 +585,6 @@ minio:
 
   environment:
     MINIO_PROMETHEUS_JOB_ID: minio-actuator
-    MINIO_PROMETHEUS_URL: http://prometheus:9090
-
 ```
 
 1. Use this to enable or disable the monitoring components
@@ -919,11 +939,24 @@ For the complete notification request and response contract, see the [Item Relat
 
 ### Required configuration
 
-Each IRS instance must have a local BPNL for the recursive path. The Helm chart uses the existing `bpn` value by default and supports `recursive.localBpnl` as an explicit override:
+`irs.recursive.enabled` defaults to `false`. Outside Helm, set `IRS_RECURSIVE_ENABLED=true` to enable the recursive path. In Helm, set `recursive.enabled: true`; omitting the value keeps it disabled. This switch is evaluated at startup and requires an application restart.
+
+Deployments using recursive IRS must explicitly enable it when upgrading.
+
+The deployed IRS image must support `irs.recursive.enabled`.
+
+With Helm `config.override: true`, set `irs.recursive.enabled` in `config.content` because the generated application configuration is not used.
+
+When disabled, recursive job, chain opening grant and notification endpoints are not available, and recursive background processing does not run. Recursive-only BPNL, timeout and persistence configuration is not required. Shared iterative IRS and ESS configuration and behavior remain unchanged.
+
+Disabling does not delete stored recursive jobs or chain opening grants. When enabled again, IRS processes stored jobs according to its startup recovery rules. Job deadlines continue to apply while the recursive path is disabled. Blob-store retention remains in effect.
+
+When enabled, each IRS instance must have a local BPNL for the recursive path. The Helm chart uses the existing `bpn` value by default and supports `recursive.localBpnl` as an explicit override:
 
 ```yaml
 bpn: <LOCAL_BPNL>
 recursive:
+  enabled: true
   # Optional. Omit this value to reuse bpn.
   localBpnl:
   timeout:
@@ -933,7 +966,7 @@ recursive:
     timeoutCheckInterval: PT30S
 ```
 
-Set `recursive.localBpnl` only if the recursive path must use a different BPNL than the general IRS instance value. Outside the Helm chart, the corresponding Spring property `irs.recursive.localBpnl`, or the environment variable `IRS_RECURSIVE_LOCAL_BPNL`, remains required. The value identifies the local IRS instance when it sends recursive partner notifications.
+Set `recursive.localBpnl` only if the recursive path must use a different BPNL than the general IRS instance value. Outside the Helm chart, the corresponding Spring property `irs.recursive.localBpnl`, or the environment variable `IRS_RECURSIVE_LOCAL_BPNL`, is required when recursive IRS is enabled. The value identifies the local IRS instance when it sends recursive partner notifications.
 
 For a root job, omitted or null `ttl` uses `recursive.timeout.defaultJobTtl` (`PT30M`). An explicit `ttl` must be a positive ISO-8601 duration; empty, malformed, zero and negative values return HTTP 400. A positive TTL can be shorter than the safety buffer. `recursive.timeout.maxJobTtl` (`PT2H`) caps requested root TTLs, and the effective TTL is added to the job creation time.
 
